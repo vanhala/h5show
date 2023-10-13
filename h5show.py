@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import h5py
 import sys
 import os
@@ -16,13 +17,47 @@ def parsepath(path):
     return filepath,dsetpath
 
 def printusage():
-    
+
     print('Usage: h5show /path/to/file.h5//group1/group2/dsetname')
 
-def listgroup(group):
+def printcolumns(rows):
+    
+    maxwidth=max(len(word) for row in rows for word in row)+2
+    
+    for row in rows:
+        for word in row:
+            print(word.ljust(maxwidth),end='')
+        print('')
 
+def item_info(item):
+    
+    name=item.name.split('/')[-1]
+    if isinstance(item,h5py.Group):
+        kind='group'
+    elif isinstance(item,h5py.Dataset):
+        kind='dataset'
+    else:
+        kind='other'
+
+    if kind=='group' or kind=='other':
+        return name,kind
+
+    dtypestr=item.dtype.name
+    shapestr=str(item.shape)
+    
+    return name,kind,shapestr,dtypestr
+
+def listgroup(group):
+    
+    infos=[]
     for key in group.keys():
-        print(key)
+        infos.append(list(item_info(group[key])))
+    
+    printcolumns(infos)
+
+def print_item_info(item):
+    
+    printcolumns([list(item_info(item))])
 
 def show(filepath,itempath):
     
@@ -44,10 +79,10 @@ def show(filepath,itempath):
                 item=f[itempath]
             
             if isinstance(item,h5py.Dataset):
-                if item.size>1000:
-                    print(item)
-                else:
+                print_item_info(item)
+                if item.size<=1000:
                     data=numpy.array(item)
+                    print('\nData:')
                     print(data)
             else:
                 listgroup(item)
