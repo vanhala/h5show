@@ -84,6 +84,8 @@ def show(filepath,itempath):
                     data=numpy.array(item)
                     print('\nData:')
                     print(data)
+                else:
+                    print('(Will not print data as the dataset has more than 1000 elements)')
             else:
                 listgroup(item)
                 
