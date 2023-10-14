@@ -18,7 +18,7 @@ def parsepath(path):
 
 def printusage():
 
-    print('Usage: h5show /path/to/file.h5//group1/group2/dsetname')
+    print('Usage: h5show /path/to/file.h5//group1/group2/dsetname [more paths...]')
 
 def printcolumns(rows):
     
@@ -60,16 +60,21 @@ def print_item_info(item):
     printcolumns([list(item_info(item))])
 
 def show(filepath,itempath):
-    
+
+    #check the common typo-type mistakes to give a nice error message
     if not os.path.isfile(filepath):
         print('No such file: '+filepath)
+        return False
+    
+    if not h5py.is_hdf5(filepath):
+        print('Not an hdf5 file: '+filepath)
         return False
     
     try:
         with h5py.File(filepath,'r') as f:
             
             if itempath!='' and (not itempath in f):
-                print('No such group or dataset: '+itempath)
+                print('No such item: '+filepath+'//'+itempath)
                 return False
             
             if itempath=='':
@@ -92,17 +97,20 @@ def show(filepath,itempath):
     except FileNotFoundError as err:
         print('Failed opening the file '+filepath)
         print(err)
-        
 
 def main():
     
-    if len(sys.argv)!=2:
+    if len(sys.argv)<2:
         printusage()
         sys.exit()
     
-    filepath,itempath=parsepath(sys.argv[1])
-
-    show(filepath,itempath)
+    paths=sys.argv[1:]
+    
+    for path in paths:
+        filepath,itempath=parsepath(path)
+        if len(paths)>1:
+            print(path)
+        show(filepath,itempath)
 
 if __name__=='__main__':
     main()
