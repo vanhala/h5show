@@ -3,6 +3,7 @@ import h5py
 import sys
 import os
 import numpy
+import glob
 
 def parsepath(path):
 
@@ -22,11 +23,16 @@ def printusage():
 
 def printcolumns(rows):
     
-    maxwidth=max(len(word) for row in rows for word in row)+2
+    maxcols=max(len(row) for row in rows)
+    
+    #the justified width of each column
+    maxwidths=[]
+    for colind in range(maxcols):    
+        maxwidths.append(max(len(row[colind]) if len(row)>colind else 0 for row in rows)+4)
     
     for row in rows:
-        for word in row:
-            print(word.ljust(maxwidth),end='')
+        for colind in range(len(row)):
+            print(row[colind].ljust(maxwidths[colind]),end='')
         print('')
 
 def item_info(item):
@@ -38,14 +44,32 @@ def item_info(item):
         kind='dataset'
     else:
         kind='other'
-
+    
+    if kind=='group' or kind=='dataset':
+        attrnames=list(item.attrs.keys())
+        if len(attrnames)!=0:
+            attrstr='('
+            for i in range(len(attrnames)):
+                attrstr+=attrnames[i]+'='+str(item.attrs[attrnames[i]])
+                if i!=len(attrnames)-1:
+                    attrstr+=', '
+            attrstr+=')'
+        else:
+            attrstr=None
+    
     if kind=='group' or kind=='other':
-        return name,kind
-
+        if attrstr is not None:
+            return name,kind,attrstr
+        else:
+            return name,kind
+    
     dtypestr=item.dtype.name
     shapestr=str(item.shape)
-    
-    return name,kind,shapestr,dtypestr
+
+    if attrstr is not None:
+        return name,kind,shapestr,dtypestr,attrstr
+    else:
+        return name,kind,shapestr,dtypestr
 
 def listgroup(group):
     
@@ -87,7 +111,7 @@ def show(filepath,itempath):
                 print_item_info(item)
                 if item.size<=1000:
                     data=numpy.array(item)
-                    print('\nData:')
+                    print('Data:')
                     print(data)
                 else:
                     print('(Will not print data as the dataset has more than 1000 elements)')
@@ -98,6 +122,15 @@ def show(filepath,itempath):
         print('Failed opening the file '+filepath)
         print(err)
 
+def make_file_paths(filepath):
+    
+    filenames=glob.glob(filepath)
+    
+    if len(filenames)==0:
+        print('No such file: '+filepath)
+    
+    return filenames
+
 def main():
     
     if len(sys.argv)<2:
@@ -107,10 +140,15 @@ def main():
     paths=sys.argv[1:]
     
     for path in paths:
-        filepath,itempath=parsepath(path)
-        if len(paths)>1:
-            print(path)
-        show(filepath,itempath)
+        filepattern,itempath=parsepath(path)
+        filepaths=make_file_paths(filepattern)
+        
+        for filepath in filepaths:
+            if len(paths)>1 or len(filepaths)>1:
+                print(filepath)
+            show(filepath,itempath)
+            if len(paths)>1 or len(filepaths)>1:
+                print()
 
 if __name__=='__main__':
     main()
