@@ -6,16 +6,29 @@ import numpy
 import glob
 
 def parsepath(path):
-
+    
     scount=path.count('//')
     
     if path.count('//')>1:
         print('Error: the separator // cannot appear more than once in the path')
         sys.exit(1)
     
-    filepath,separator,dsetpath=path.partition('//')
+    filepath,separator,dsetpath_with_inds=path.partition('//')
     
-    return filepath,dsetpath
+    indbracketcount=dsetpath_with_inds.count('[')
+    
+    if indbracketcount>1:
+        print('Error: [ cannot appear more than once in the indexing expression')
+        sys.exit(1)
+    
+    if indbracketcount==0:
+        indspec=''
+        dsetpath=dsetpath_with_inds
+    else:
+        dsetpath,indspec=dsetpath_with_inds.split('[')
+        indspec='['+indspec
+    
+    return filepath,dsetpath,indspec
 
 def printusage():
 
@@ -83,7 +96,85 @@ def print_item_info(item):
     
     printcolumns([list(item_info(item))])
 
-def show(filepath,itempath):
+def print_dataset(dataset,elemspec):
+    
+    print_item_info(dataset)
+    
+    if len(elemspec)!=0:
+        
+        if elemspec=='[]' or elemspec=='[':
+            data=numpy.array(item)
+            print('Data:')
+            print(data)
+            return True
+        
+        if elemspec[0]!='[' or elemspec[-1]!=']':
+            print('Erroneous element specification')
+            return False
+        
+        components=elemspec[1:-1].split(',')
+        
+        if len(components)!=len(dataset.shape):
+            print('Element specification has '+str(len(components))+' component but dataset is '+str(len(dataset.shape))+' dimensional.')
+            return False
+        
+        slices=[]
+
+        for i in range(len(components)):
+            
+            compcomp=components[i].split(':')
+            
+            if len(compcomp)==1:
+                try:
+                    ind=int(compcomp[0])
+                except:
+                    print(compcomp[0]+' is not an integer')
+                    return False
+                
+                slices.append(ind)
+                continue
+            
+            if len(compcomp)!=2:
+                print('Erroneous slice specification: '+components[i])
+                print('Specification must contain exactly one ":"')
+                return False
+            
+            if len(compcomp[0])==0:
+                start=0
+            else:
+                try:
+                    start=int(compcomp[0])
+                except:
+                    print(compcomp[0]+' is not an integer')
+                    return False
+            
+            if len(compcomp[1])==0:
+                end=dataset.shape[i]
+            else:
+                try:
+                    end=int(compcomp[1])
+                except:
+                    print(compcomp[1]+' is not an integer')
+                    return False
+            
+            if end>dataset.shape[i] or start>end or start<0:
+                print('Index out of bounds: '+components[i])
+                return False
+            
+            slices.append(numpy.s_[start:end])
+        
+        slices=tuple(slices)
+        print(dataset[slices])
+        
+    # if item.size<=1000:
+    #     data=numpy.array(item)
+    #     print('Data:')
+    #     print(data)
+    # else:
+    #     print('(Will not print data as the dataset has more than 1000 elements)')
+
+
+def show(filepath,itempath,elemspec):
 
     #check the common typo-type mistakes to give a nice error message
     if not os.path.isfile(filepath):
@@ -108,19 +199,20 @@ def show(filepath,itempath):
                 item=f[itempath]
             
             if isinstance(item,h5py.Dataset):
-                print_item_info(item)
-                if item.size<=1000:
-                    data=numpy.array(item)
-                    print('Data:')
-                    print(data)
-                else:
-                    print('(Will not print data as the dataset has more than 1000 elements)')
+                print_dataset(item,elemspec)
             else:
+                if len(elemspec)!=0:
+                    print('Indexing can only be used for datasets (not groups)')
+                    return False
+                
                 listgroup(item)
                 
     except FileNotFoundError as err:
         print('Failed opening the file '+filepath)
         print(err)
+        return False
+    
+    return True
 
 def make_file_paths(filepath):
     
@@ -140,13 +232,13 @@ def main():
     paths=sys.argv[1:]
     
     for path in paths:
-        filepattern,itempath=parsepath(path)
+        filepattern,itempath,indspec=parsepath(path)
         filepaths=make_file_paths(filepattern)
         
         for filepath in filepaths:
             if len(paths)>1 or len(filepaths)>1:
                 print(filepath)
-            show(filepath,itempath)
+            show(filepath,itempath,indspec)
             if len(paths)>1 or len(filepaths)>1:
                 print()
 
