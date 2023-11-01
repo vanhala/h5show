@@ -103,7 +103,7 @@ def print_dataset(dataset,elemspec):
     if len(elemspec)!=0:
         
         if elemspec=='[]' or elemspec=='[':
-            data=numpy.array(item)
+            data=numpy.array(dataset)
             print('Data:')
             print(data)
             return True
