@@ -8,12 +8,11 @@ datasets.
 
 # Syntax
 
-List the root of the file:
+## List the root of the file:
 
 h5show.py file.h5
 
-List contents of a subgroup with path group1/group2 in a file not
-residing in the working directory:
+## List contents of a subgroup with path group1/group2 in a file not residing in the working directory:
 
 h5show.py /path/to/file.h5//group1/group2
 
@@ -21,11 +20,11 @@ Note the double slash separator between the file name and the group
 names. This is to separate the filesystem paths from the paths within
 the hdf5 file.
 
-Print information about a dataset:
+## Print information about a dataset:
 
 h5show.py file.h5//group/dataset
 
-Print elements from a dataset:
+## Print elements from a dataset:
 
 The datasets can be indexed within square brackets much like numpy
 arrays. One can also use semicolons for slicing.
