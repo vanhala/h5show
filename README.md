@@ -12,7 +12,7 @@ datasets.
 
 h5show.py file.h5
 
-## List contents of a subgroup with path group1/group2 in a file not residing in the working directory:
+## List contents of a subgroup:
 
 h5show.py /path/to/file.h5//group1/group2
 
